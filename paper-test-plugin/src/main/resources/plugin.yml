@@ -1,0 +1,9 @@
+name: PluginManagerTestPlugin
+version: 1.0.0
+main: com.pluginmanager.test.PluginManagerTestPlugin
+api-version: "1.21"
+commands:
+  pmtptest:
+    description: Exercise Plugin Manager backend endpoints
+    usage: /pmtptest [register|heartbeat|players|console|status|all]
+

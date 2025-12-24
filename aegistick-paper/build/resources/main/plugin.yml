@@ -1,0 +1,15 @@
+name: AegisTick
+version: 1.0.0
+main: dev.aegistick.paper.AegisTickPlugin
+api-version: "1.21"
+author: AegisTick Team
+description: Invisible adaptive server optimizer
+commands:
+  aegistick:
+    description: AegisTick admin controls
+    permission: aegistick.admin
+    usage: /aegistick
+permissions:
+  aegistick.admin:
+    description: Access to AegisTick admin controls
+    default: op

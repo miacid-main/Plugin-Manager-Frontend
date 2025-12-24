@@ -1,0 +1,259 @@
+import { nanoid } from 'nanoid'
+import { EventEmitter } from 'node:events'
+
+export type PluginStatus = 'active' | 'disabled'
+export type ServerStatus = 'online' | 'offline'
+
+export type Plugin = {
+  id: string
+  name: string
+  description: string
+  version: string
+  createdAt: number
+  updatedAt: number
+}
+
+export type ConsoleLine = {
+  ts: number
+  text: string
+}
+
+export type PendingCommand = {
+  id: string
+  command: string
+  ts: number
+}
+
+export type AuditEntry = {
+  id: string
+  ts: number
+  actor: string
+  action: string
+  meta: unknown
+}
+
+export type Server = {
+  id: string
+  pluginId: string
+  ip: string
+  port: number
+  pluginStatus: PluginStatus
+  serverStatus: ServerStatus
+  onlinePlayers: number
+  players: string[]
+  console: ConsoleLine[]
+  lastHeartbeatAt: number
+  pendingCommands: PendingCommand[]
+}
+
+type StreamType = 'console' | 'players'
+
+export class StreamHub {
+  private subscriptions = new Map<string, Map<StreamType, Set<EventEmitter>>>()
+
+  publish(serverId: string, type: StreamType, data: unknown) {
+    const serverMap = this.subscriptions.get(serverId)
+    const subs = serverMap?.get(type)
+    if (!subs || subs.size === 0) return
+    for (const emitter of subs) {
+      emitter.emit('event', data)
+    }
+  }
+
+  subscribe(serverId: string, type: StreamType) {
+    const emitter = new EventEmitter()
+    let serverMap = this.subscriptions.get(serverId)
+    if (!serverMap) {
+      serverMap = new Map()
+      this.subscriptions.set(serverId, serverMap)
+    }
+    let subs = serverMap.get(type)
+    if (!subs) {
+      subs = new Set()
+      serverMap.set(type, subs)
+    }
+    subs.add(emitter)
+
+    const unsubscribe = () => {
+      subs?.delete(emitter)
+      if (subs && subs.size === 0) serverMap?.delete(type)
+      if (serverMap && serverMap.size === 0) this.subscriptions.delete(serverId)
+    }
+
+    return { emitter, unsubscribe }
+  }
+}
+
+export class AppState {
+  pluginsById = new Map<string, Plugin>()
+  pluginIdByName = new Map<string, string>()
+  serversById = new Map<string, Server>()
+  serverIdByPluginAndAddr = new Map<string, string>()
+  sessionsByToken = new Map<string, { username: string; email: string; exp: number }>()
+  streamHub = new StreamHub()
+  private audit: AuditEntry[] = []
+
+  constructor(
+    private readonly options: {
+      consoleMaxLines: number
+      serverOfflineAfterMs: number
+    },
+  ) {}
+
+  addAudit(input: { actor: string; action: string; meta?: unknown }) {
+    const entry: AuditEntry = {
+      id: nanoid(),
+      ts: Date.now(),
+      actor: String(input.actor || 'unknown'),
+      action: String(input.action || ''),
+      meta: input.meta ?? null,
+    }
+    this.audit.push(entry)
+    if (this.audit.length > 2000) this.audit.splice(0, this.audit.length - 2000)
+  }
+
+  listAudit(limit: number) {
+    const n = Number.isFinite(limit) ? Math.max(1, Math.min(2000, Math.floor(limit))) : 200
+    return this.audit.slice(Math.max(0, this.audit.length - n))
+  }
+
+  upsertPlugin(input: { name: string; description?: string; version?: string }) {
+    const now = Date.now()
+    const normalizedName = input.name.trim()
+    const existingId = this.pluginIdByName.get(normalizedName.toLowerCase())
+    if (existingId) {
+      const existing = this.pluginsById.get(existingId)
+      if (!existing) {
+        this.pluginIdByName.delete(normalizedName.toLowerCase())
+      } else {
+        const updated: Plugin = {
+          ...existing,
+          name: normalizedName,
+          description: input.description?.trim() || existing.description,
+          version: input.version?.trim() || existing.version,
+          updatedAt: now,
+        }
+        this.pluginsById.set(existingId, updated)
+        return updated
+      }
+    }
+
+    const plugin: Plugin = {
+      id: nanoid(),
+      name: normalizedName,
+      description: input.description?.trim() || 'No description',
+      version: input.version?.trim() || 'unknown',
+      createdAt: now,
+      updatedAt: now,
+    }
+    this.pluginsById.set(plugin.id, plugin)
+    this.pluginIdByName.set(normalizedName.toLowerCase(), plugin.id)
+    return plugin
+  }
+
+  upsertServer(input: { pluginId: string; ip: string; port: number }) {
+    const key = `${input.pluginId}::${input.ip}::${input.port}`
+    const now = Date.now()
+    const existingId = this.serverIdByPluginAndAddr.get(key)
+    if (existingId) {
+      const server = this.serversById.get(existingId)
+      if (server) {
+        const updated: Server = {
+          ...server,
+          ip: input.ip,
+          port: input.port,
+          serverStatus: 'online',
+          lastHeartbeatAt: now,
+        }
+        this.serversById.set(existingId, updated)
+        return updated
+      }
+      this.serverIdByPluginAndAddr.delete(key)
+    }
+
+    const server: Server = {
+      id: nanoid(),
+      pluginId: input.pluginId,
+      ip: input.ip,
+      port: input.port,
+      pluginStatus: 'active',
+      serverStatus: 'online',
+      onlinePlayers: 0,
+      players: [],
+      console: [],
+      lastHeartbeatAt: now,
+      pendingCommands: [],
+    }
+    this.serversById.set(server.id, server)
+    this.serverIdByPluginAndAddr.set(key, server.id)
+    return server
+  }
+
+  appendConsole(serverId: string, lines: string[]) {
+    const server = this.serversById.get(serverId)
+    if (!server) return
+    const now = Date.now()
+    const next: ConsoleLine[] = [...server.console]
+    for (const text of lines) {
+      next.push({ ts: now, text })
+      this.streamHub.publish(serverId, 'console', { ts: now, text })
+    }
+    const trimmed =
+      next.length > this.options.consoleMaxLines ? next.slice(next.length - this.options.consoleMaxLines) : next
+    this.serversById.set(serverId, { ...server, console: trimmed })
+  }
+
+  setPlayers(serverId: string, onlinePlayers: number, players: string[]) {
+    const server = this.serversById.get(serverId)
+    if (!server) return
+    const unique = Array.from(new Set(players.map((p) => p.trim()).filter(Boolean)))
+    this.serversById.set(serverId, { ...server, onlinePlayers, players: unique })
+    this.streamHub.publish(serverId, 'players', { onlinePlayers, players: unique })
+  }
+
+  setPluginStatus(serverId: string, pluginStatus: PluginStatus) {
+    const server = this.serversById.get(serverId)
+    if (!server) return
+    this.serversById.set(serverId, { ...server, pluginStatus })
+  }
+
+  markOfflineServers() {
+    const now = Date.now()
+    for (const [id, server] of this.serversById) {
+      const shouldBeOffline = now - server.lastHeartbeatAt > this.options.serverOfflineAfterMs
+      if (!shouldBeOffline) continue
+      if (server.serverStatus === 'offline') continue
+      this.serversById.set(id, { ...server, serverStatus: 'offline' })
+      this.appendConsole(id, ['[backend] Server marked offline (missed heartbeat)'])
+      this.addAudit({
+        actor: 'backend',
+        action: 'server_marked_offline',
+        meta: { serverId: id, pluginId: server.pluginId, ip: server.ip, port: server.port },
+      })
+    }
+  }
+
+  enqueueCommand(serverId: string, command: string) {
+    const server = this.serversById.get(serverId)
+    if (!server) return null
+    const item: PendingCommand = { id: nanoid(), command, ts: Date.now() }
+    this.serversById.set(serverId, { ...server, pendingCommands: [...server.pendingCommands, item] })
+    return item
+  }
+
+  acknowledgeCommands(serverId: string, ids: string[]) {
+    const server = this.serversById.get(serverId)
+    if (!server) return
+    const remove = new Set(ids)
+    const remaining = server.pendingCommands.filter((c) => !remove.has(c.id))
+    if (remaining.length === server.pendingCommands.length) return
+    this.serversById.set(serverId, { ...server, pendingCommands: remaining })
+  }
+
+  clearPendingCommands(serverId: string) {
+    const server = this.serversById.get(serverId)
+    if (!server) return
+    if (server.pendingCommands.length === 0) return
+    this.serversById.set(serverId, { ...server, pendingCommands: [] })
+  }
+}

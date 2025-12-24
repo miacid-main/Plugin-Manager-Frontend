@@ -1,0 +1,6 @@
+backendUrl: "http://localhost:3001"
+serverIpOverride: ""
+heartbeatIntervalTicks: 100
+playersIntervalTicks: 100
+consoleIntervalTicks: 200
+

@@ -1,0 +1,5 @@
+-cp
+C:\\Users\\senpa\\.gradle\\caches\\modules-2\\files-2.1\\io.papermc.paper\\paper-api\\1.21.1-R0.1-SNAPSHOT\\6f1e11de8e85bb7d49bbf9f23f456ed547d8e28c\\paper-api-1.21.1-R0.1-SNAPSHOT.jar;C:\\Users\\senpa\\.gradle\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.11.0\\527175ca6d81050b53bdd4c457a6d6e017626b0e\\gson-2.11.0.jar
+-d
+build\\classes\\java\\main
+src\\main\\java\\com\\pluginmanager\\test\\PluginManagerTestPlugin.java
