@@ -14,9 +14,12 @@ const state = new AppState({
     serverOfflineAfterMs: Number(process.env.SERVER_OFFLINE_AFTER_MS || 15_000),
 });
 setInterval(() => state.markOfflineServers(), 2_000).unref();
-const USERNAME = 'Miacid';
-const EMAIL = 'miacidsenpai@gmail.com';
-const PASSWORD = 'takanashi_20';
+const USERNAME = String(process.env.ADMIN_USERNAME || '');
+const EMAIL = String(process.env.ADMIN_EMAIL || '');
+const PASSWORD = String(process.env.ADMIN_PASSWORD || '');
+if (!USERNAME || !EMAIL || !PASSWORD) {
+    throw new Error('Missing required env vars: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD');
+}
 function pluginNameKey(name) {
     return name.trim().toLowerCase();
 }
@@ -116,6 +119,8 @@ app.post('/plugin/register', (req, res) => {
         version: body.pluginVersion,
     });
     const server = state.upsertServer({ pluginId: plugin.id, ip: body.serverIp, port: body.serverPort });
+    // Clear any pending commands from previous sessions on fresh register
+    state.clearPendingCommands(server.id);
     if (typeof body.enabled === 'boolean') {
         const current = state.serversById.get(server.id);
         if (current?.pluginStatus !== 'disabled')
@@ -150,19 +155,7 @@ app.post('/plugin/heartbeat', (req, res) => {
         state.setPlayers(server.id, body.onlinePlayers, server.players);
     if (Array.isArray(body.ackCommandIds) && body.ackCommandIds.length > 0)
         state.acknowledgeCommands(server.id, body.ackCommandIds);
-    state.addAudit({
-        actor: `plugin:${body.pluginName}`,
-        action: 'plugin_heartbeat',
-        meta: {
-            pluginId: plugin.id,
-            serverId: server.id,
-            ip: body.serverIp,
-            port: body.serverPort,
-            enabled: body.enabled ?? null,
-            onlinePlayers: body.onlinePlayers ?? null,
-            ackCommandIds: body.ackCommandIds ?? [],
-        },
-    });
+    // Heartbeat is frequent, so we skip auditing it to reduce noise
     const current = state.serversById.get(server.id);
     res.json({
         ok: true,
@@ -184,11 +177,7 @@ app.post('/plugin/players', (req, res) => {
     });
     const server = state.upsertServer({ pluginId: plugin.id, ip: body.serverIp, port: body.serverPort });
     state.setPlayers(server.id, body.onlinePlayers, body.players);
-    state.addAudit({
-        actor: `plugin:${body.pluginName}`,
-        action: 'players_updated',
-        meta: { pluginId: plugin.id, serverId: server.id, ip: body.serverIp, port: body.serverPort, onlinePlayers: body.onlinePlayers, players: body.players },
-    });
+    // Skip auditing players_updated to reduce noise
     res.json({ ok: true });
 });
 app.post('/plugin/console', (req, res) => {
@@ -206,11 +195,7 @@ app.post('/plugin/console', (req, res) => {
     const lines = Array.isArray(body.lines) ? body.lines : body.line ? [body.line] : [];
     if (lines.length > 0)
         state.appendConsole(server.id, lines);
-    state.addAudit({
-        actor: `plugin:${body.pluginName}`,
-        action: 'console_ingested',
-        meta: { pluginId: plugin.id, serverId: server.id, ip: body.serverIp, port: body.serverPort, linesCount: lines.length },
-    });
+    // Skip auditing console_ingested to reduce noise
     res.json({ ok: true });
 });
 app.post('/plugin/status', (req, res) => {
@@ -228,11 +213,7 @@ app.post('/plugin/status', (req, res) => {
     const current = state.serversById.get(server.id);
     if (current?.pluginStatus !== 'disabled')
         state.setPluginStatus(server.id, body.enabled ? 'active' : 'disabled');
-    state.addAudit({
-        actor: `plugin:${body.pluginName}`,
-        action: 'plugin_status',
-        meta: { pluginId: plugin.id, serverId: server.id, ip: body.serverIp, port: body.serverPort, enabled: body.enabled },
-    });
+    // Skip auditing plugin_status to reduce noise
     res.json({ ok: true });
 });
 app.post('/plugin/event', (req, res) => {

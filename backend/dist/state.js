@@ -193,4 +193,12 @@ export class AppState {
             return;
         this.serversById.set(serverId, { ...server, pendingCommands: remaining });
     }
+    clearPendingCommands(serverId) {
+        const server = this.serversById.get(serverId);
+        if (!server)
+            return;
+        if (server.pendingCommands.length === 0)
+            return;
+        this.serversById.set(serverId, { ...server, pendingCommands: [] });
+    }
 }

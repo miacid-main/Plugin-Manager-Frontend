@@ -1,0 +1,52 @@
+# Plugin <-> Backend Endpoints
+
+All plugin requests use JSON and should send `Content-Type: application/json`.
+
+## Shared Fields (required on all plugin -> backend POSTs)
+- pluginName (string)
+- serverIp (string)
+- serverPort (int)
+- pluginDescription (string, optional)
+- pluginVersion (string, optional)
+
+## Plugin -> Backend
+GET /health
+  - Description: Health check (optional for plugins).
+  - Response: { ok: true }
+
+POST /plugin/register
+  - Description: Register a plugin instance on startup.
+  - Body: { pluginName, serverIp, serverPort, pluginDescription?, pluginVersion?, enabled? }
+  - Response: { ok: true, pluginId, serverId }
+
+POST /plugin/heartbeat
+  - Description: Heartbeat + fetch any pending backend commands.
+  - Body: { pluginName, serverIp, serverPort, pluginDescription?, pluginVersion?, enabled?, onlinePlayers?, ackCommandIds? }
+  - Response: { ok: true, pluginId, serverId, pendingCommands: [{ id, command, ts }] }
+
+POST /plugin/players
+  - Description: Push player snapshot updates.
+  - Body: { pluginName, serverIp, serverPort, pluginDescription?, pluginVersion?, onlinePlayers, players: [] }
+  - Response: { ok: true }
+
+POST /plugin/console
+  - Description: Push console logs.
+  - Body: { pluginName, serverIp, serverPort, pluginDescription?, pluginVersion?, line? , lines? }
+  - Response: { ok: true }
+
+POST /plugin/status
+  - Description: Push plugin enabled/disabled status.
+  - Body: { pluginName, serverIp, serverPort, pluginDescription?, pluginVersion?, enabled }
+  - Response: { ok: true }
+
+POST /plugin/event
+  - Description: Push plugin-generated events (custom triggers).
+  - Body: { pluginName, serverIp, serverPort, pluginDescription?, pluginVersion?, event, details? }
+  - Response: { ok: true }
+
+## Backend -> Plugin
+The backend does not call the plugin over HTTP directly.
+
+Backend-to-plugin actions are delivered via the `POST /plugin/heartbeat` response:
+- `pendingCommands[]` items look like `{ id, command, ts }`
+- the plugin should report completed items back using `ackCommandIds[]` on a later `POST /plugin/heartbeat` request

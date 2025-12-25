@@ -1,0 +1,97 @@
+# SilentaCore Configuration
+# "Invisible, micro-level optimizations that improve server performance."
+
+# General Settings
+debug: false
+check-update: true
+
+# Monitoring Settings
+monitoring:
+  tps-check-interval: 100 # ticks
+  mspt-check-interval: 100 # ticks
+  # Thresholds for triggering optimizations
+  # Level 1: Light optimization (preventative)
+  level1-tps: 19.5
+  # Level 2: Moderate optimization (reactive)
+  level2-tps: 18.0
+  # Level 3: Heavy optimization (emergency)
+  level3-tps: 16.0
+
+# Optimization Modules
+
+# 1. Adaptive Hopper Throttling
+hopper-optimization:
+  enabled: true
+  # Ticks to wait between transfers at different load levels
+  # Vanilla is 8 (transfer) / 1 (check)
+  throttle-delay:
+    level1: 10
+    level2: 20
+    level3: 40
+  # Skip transfer checks if hopper is full/empty for X ticks
+  check-interval:
+    level1: 5
+    level2: 10
+    level3: 20
+
+# 2. Smart Entity AI Sleep
+entity-ai-optimization:
+  enabled: true
+  # Distance from player to keep AI fully active
+  activation-range: 32
+  # Entities to never sleep
+  exclude-types:
+    - VILLAGER
+    - WITHER
+    - ENDER_DRAGON
+  # Check interval in ticks
+  check-interval: 100
+
+# 3. Random Tick Load Scaling
+random-tick-optimization:
+  enabled: true
+  # Max random tick speed reduction (chunks with many tile entities)
+  # Vanilla default is 3. This sets the lower bound.
+  min-random-tick-speed: 1
+  # Only apply to chunks with more than X tile entities
+  tile-entity-threshold: 64
+
+# 4. Lossless Redstone Optimization
+redstone-optimization:
+  enabled: true
+  # Cache redstone states to prevent redundant updates
+  cache-states: true
+  # Suppress updates if TPS is below Level 3
+  suppress-updates-on-lag: true
+
+# 5. Safe Item Entity Merging
+item-merge-optimization:
+  enabled: true
+  # Merge radius
+  radius: 3.5
+  # Check interval in ticks
+  check-interval: 40
+  # Max stack size
+  max-stack-size: 64
+
+# Protection Modules
+
+# Builder Activity Protection
+builder-protection:
+  enabled: true
+  # Time in seconds to exempt a chunk after block placement/break
+  exemption-duration: 30
+
+# Combat Integrity Protection
+combat-protection:
+  enabled: true
+  # Time in seconds to exempt an entity after taking/dealing damage
+  exemption-duration: 15
+
+# AFK Awareness
+afk-optimization:
+  enabled: true
+  # Time in seconds before a player is considered AFK
+  afk-timeout: 300
+  # Reduce view distance for AFK players (if supported)
+  reduce-view-distance: true

@@ -1,0 +1,19 @@
+name: SilentaCore
+version: '1.0.0'
+main: dev.silentacore.SilentaCore
+api-version: '1.21'
+authors: [Senpai]
+description: Invisible, micro-level optimizations that improve server performance without noticeable gameplay changes.
+website: https://plugin-manager-backend.onrender.com
+
+commands:
+  silentacore:
+    description: Main command for SilentaCore
+    usage: /silentacore [status|reload|force-opt]
+    permission: silentacore.admin
+    aliases: [sc, silenta]
+
+permissions:
+  silentacore.admin:
+    description: Allows full control of SilentaCore
+    default: op

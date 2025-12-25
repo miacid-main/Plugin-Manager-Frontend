@@ -1,0 +1,15 @@
+name: ChatCleaner
+version: 1.0.0
+main: com.chatcleaner.ChatCleaner
+api-version: 1.21
+authors: [TraeAI]
+description: A standalone chat filtering and moderation plugin.
+commands:
+  chatcleaner:
+    description: Main command for ChatCleaner
+    usage: /chatcleaner <reload|status|whitelist>
+    permission: chatcleaner.admin
+permissions:
+  chatcleaner.admin:
+    description: Admin access for ChatCleaner
+    default: op

@@ -29,9 +29,13 @@ const state = new AppState({
 
 setInterval(() => state.markOfflineServers(), 2_000).unref()
 
-const USERNAME = 'Miacid'
-const EMAIL = 'miacidsenpai@gmail.com'
-const PASSWORD = 'takanashi_20'
+const USERNAME = String(process.env.ADMIN_USERNAME || '')
+const EMAIL = String(process.env.ADMIN_EMAIL || '')
+const PASSWORD = String(process.env.ADMIN_PASSWORD || '')
+
+if (!USERNAME || !EMAIL || !PASSWORD) {
+  throw new Error('Missing required env vars: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD')
+}
 
 function pluginNameKey(name: string) {
   return name.trim().toLowerCase()

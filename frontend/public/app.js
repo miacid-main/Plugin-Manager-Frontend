@@ -506,7 +506,7 @@ function requireLogin() {
 function loginPage() {
   const backendUrl = getBackendUrl()
   const owner = getOwnerAccount()
-  const state = { identifier: owner.username, password: owner.password, loading: false, error: null }
+  const state = { identifier: '', password: '', loading: false, error: null }
 
   const errorBox = el('div', { class: 'error', style: { display: 'none' } })
 
@@ -548,7 +548,21 @@ function loginPage() {
     submitBtn.textContent = 'Logging in...'
     setError(null)
     try {
-      const acc = findAccountByIdentifier(identifier)
+      let acc = findAccountByIdentifier(identifier)
+
+      // Auto-register owner if not set (first run on device)
+      const currentOwner = getOwnerAccount()
+      if (!acc && (!currentOwner.username || !currentOwner.password)) {
+        const newOwner = {
+          role: 'owner',
+          username: identifier,
+          email: identifier.includes('@') ? identifier : `${identifier}@example.com`,
+          password: state.password,
+        }
+        setOwnerAccount(newOwner)
+        acc = newOwner
+      }
+
       if (!acc || String(acc.password) !== String(state.password)) throw new Error('invalid_credentials')
       const role = acc.role === 'owner' ? 'owner' : 'member'
       setAccountSession({ role, username: acc.username, email: acc.email })

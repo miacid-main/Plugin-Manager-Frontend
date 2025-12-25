@@ -1,0 +1,101 @@
+# ChatCleaner Configuration
+
+banned-words:
+  # Common Profanity
+  - "fuck"
+  - "shit"
+  - "bitch"
+  - "asshole"
+  - "bastard"
+  - "cunt"
+  - "dick"
+  - "pussy"
+  - "cock"
+  - "whore"
+  - "slut"
+  - "fucker"
+  - "motherfucker"
+  - "bullshit"
+  - "dammit"
+  - "damn"
+  - "crap"
+  - "piss"
+  - "bollocks"
+  - "wanker"
+  - "twat"
+  - "prick"
+  - "arse"
+  - "fag"
+  - "faggot"
+  - "nigger"
+  - "nigga"
+  - "spic"
+  - "kike"
+  - "chink"
+  - "retard"
+  - "retarded"
+  - "autistic" # Often used as an insult in gaming contexts
+  - "kys"
+  - "kill yourself"
+  - "suicide"
+  - "rape"
+  - "rapist"
+  - "sex"
+  - "porn"
+  - "pornhub"
+  - "xvideos"
+  - "nude"
+  - "nudes"
+  - "hitler"
+  - "nazi"
+  - "kkk"
+  - "terrorist"
+  - "bomb"
+  - "anal"
+  - "anus"
+  - "boobs"
+  - "tits"
+  - "vagina"
+  - "penis"
+  - "clit"
+  - "cum"
+  - "jizz"
+  - "semen"
+  - "dildo"
+  - "masturbate"
+  - "orgasm"
+  - "scrotum"
+  - "testicles"
+  - "boner"
+  - "blowjob"
+  - "handjob"
+  - "rimjob"
+  - "bukake"
+  - "hentai"
+  - "milf"
+  - "incest"
+  - "beastiality"
+  - "pedophile"
+  - "pedo"
+  - "nonce"
+  - "groomer"
+
+replacement: "***"
+
+# Anti-Spam
+message-delay-seconds: 3
+
+# Slow Mode
+slowmode-enabled: true
+slowmode-delay: 5
+
+# Caps Filter
+caps-lock-filter: true
+caps-threshold: 50
+
+# Logging
+log-filtered: true
+log-file: "plugins/ChatCleaner/logs/filtered.log"
+
+# Whitelist (bypass filter)
+whitelist: []
