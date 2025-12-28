@@ -37,9 +37,9 @@ const BACKEND_OWNER_CREDENTIALS = {
 
 const DEFAULT_OWNER_ACCOUNT = {
   role: 'owner',
-  username: 'miacid',
-  email: 'miacidsenpai@gmail.com',
-  password: 'takanashi_20',
+  username: '',
+  email: '',
+  password: '',
 }
 
 function loadString(key) {
@@ -748,10 +748,12 @@ function mainDashboardPage() {
       if (!healthRes.ok) throw new Error('bad_status')
       state.connection.pingMs = Math.round(performance.now() - t0)
 
+      const ownerCreds = getOwnerAccount()
+      const identifierForBackend = ownerCreds.username || ownerCreds.email
       const loginRes = await fetch(`${base}${ENDPOINTS.authLogin()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: BACKEND_OWNER_CREDENTIALS.identifier, password: BACKEND_OWNER_CREDENTIALS.password }),
+        body: JSON.stringify({ identifier: identifierForBackend, password: ownerCreds.password }),
       })
       const text = await loginRes.text()
       const parsed = text ? safeParse(text) ?? text : null
@@ -1433,6 +1435,22 @@ function pluginDetailPage(pluginId) {
               },
               'Open',
             ),
+            el(
+              'button',
+              {
+                class: 'btn btnDanger',
+                onclick: async (e) => {
+                  e.stopPropagation()
+                  try {
+                    await requestJson('DELETE', ENDPOINTS.deleteServer(pluginId, s.id))
+                    await load()
+                  } catch {
+                    setError('Failed to delete server.')
+                  }
+                },
+              },
+              'Delete',
+            ),
             s.pluginStatus === 'disabled'
               ? el(
                   'button',
@@ -1484,7 +1502,16 @@ function pluginDetailPage(pluginId) {
         requestJson('GET', ENDPOINTS.pluginServers(pluginId)),
       ])
       state.plugin = Array.isArray(plugins) ? plugins.find((p) => p.id === pluginId) || null : null
-      state.servers = Array.isArray(servers) ? servers : []
+      if (Array.isArray(servers)) {
+        const unique = new Map()
+        for (const s of servers) {
+          const key = `${String(s.ip)}:${Number(s.port)}`
+          if (!unique.has(key)) unique.set(key, s)
+        }
+        state.servers = Array.from(unique.values())
+      } else {
+        state.servers = []
+      }
     } catch {
       setError('Failed to load plugin servers.')
     } finally {
