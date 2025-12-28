@@ -1418,12 +1418,13 @@ function pluginDetailPage(pluginId) {
         el('div', { class: 'cardHeader' }, [
           el('div', null, [
             el('div', { class: 'cardTitle' }, `${s.ip}:${s.port}`),
+            el('div', { class: 'cardBody' }, s.description || 'No description'),
             el('div', { class: 'cardBody' }, `${s.onlinePlayers} player${s.onlinePlayers === 1 ? '' : 's'} online`),
           ]),
           el('div', { class: 'row', style: { gap: '8px' } }, [pill(s.serverStatus), pill(s.pluginStatus)]),
         ]),
         el('div', { class: 'row', style: { justifyContent: 'space-between', marginTop: '10px' } }, [
-          el('div', { class: 'cardBody' }, `${s.countryFlag || '?'} ${s.countryCode || 'UNKNOWN'} · ${s.serverStatus === 'offline' ? 'Offline server: actions may fail.' : 'Click to open server panel.'}`),
+          el('div', { class: 'cardBody' }, `${s.countryName || 'UNKNOWN'} · ${s.serverStatus === 'offline' ? 'Offline server: actions may fail.' : 'Click to open server panel.'}`),
           el('div', { class: 'row', style: { gap: '8px' } }, [
             el(
               'button',
