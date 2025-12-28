@@ -27,6 +27,7 @@ const ENDPOINTS = {
   serverConsole: (serverId) => `/servers/${encodeURIComponent(serverId)}/console`,
   serverPlayers: (serverId) => `/servers/${encodeURIComponent(serverId)}/players`,
   serverCommand: (serverId) => `/servers/${encodeURIComponent(serverId)}/command`,
+  commandAll: () => `/servers/command-all`,
   health: () => '/health',
 }
 
@@ -1545,6 +1546,23 @@ function pluginDetailPage(pluginId) {
     el('div', { class: 'row' }, [
       el('button', { class: 'btn', onclick: () => navigate('/dashboard') }, 'Back'),
       el('button', { class: 'btn', onclick: () => load() }, 'Refresh'),
+      el(
+        'button',
+        {
+          class: 'btn btnDanger',
+          onclick: async () => {
+            const confirmRestart = confirm('Send restart to all servers?')
+            if (!confirmRestart) return
+            try {
+              await requestJson('POST', ENDPOINTS.commandAll(), { command: 'restart' })
+              alert('Restart queued for all servers.')
+            } catch (e) {
+              alert('Failed to queue restart.')
+            }
+          },
+        },
+        'Restart All',
+      ),
     ]),
   ])
 
