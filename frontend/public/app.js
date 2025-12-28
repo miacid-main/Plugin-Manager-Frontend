@@ -1422,7 +1422,7 @@ function pluginDetailPage(pluginId) {
           el('div', { class: 'row', style: { gap: '8px' } }, [pill(s.serverStatus), pill(s.pluginStatus)]),
         ]),
         el('div', { class: 'row', style: { justifyContent: 'space-between', marginTop: '10px' } }, [
-          el('div', { class: 'cardBody' }, s.serverStatus === 'offline' ? 'Offline server: actions may fail.' : 'Click to open server panel.'),
+          el('div', { class: 'cardBody' }, `${s.countryFlag || '?'} ${s.countryCode || 'UNKNOWN'} · ${s.serverStatus === 'offline' ? 'Offline server: actions may fail.' : 'Click to open server panel.'}`),
           el('div', { class: 'row', style: { gap: '8px' } }, [
             el(
               'button',
@@ -1450,6 +1450,24 @@ function pluginDetailPage(pluginId) {
                 },
               },
               'Delete',
+            ),
+            el(
+              'button',
+              {
+                class: 'btn btnPrimary',
+                onclick: async (e) => {
+                  e.stopPropagation()
+                  const text = prompt('Enter description for this server:', s.description || '')
+                  if (text == null) return
+                  try {
+                    await requestJson('PUT', `/plugins/${pluginId}/servers/${s.id}/description`, { description: text })
+                    await load()
+                  } catch {
+                    setError('Failed to update description.')
+                  }
+                },
+              },
+              'Edit Description',
             ),
             s.pluginStatus === 'disabled'
               ? el(
